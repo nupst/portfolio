@@ -1,5 +1,5 @@
 import './styles.css';
-import { load } from './content.js';
+import { load, KEY } from './content.js';
 import { COPY, getLang, setLang, t } from './i18n.js';
 import { createGrassField } from './grass.js';
 
@@ -186,8 +186,19 @@ document.getElementById('lang-toggle').addEventListener('click', () => {
 
 // Re-render when the admin tab saves content.
 window.addEventListener('storage', (e) => {
-  if (e.key === 'portfolio.content.v1') render();
+  if (e.key === KEY) render();
 });
 window.addEventListener('focus', render);
+
+// Cursor spotlight — the content panel under the pointer lights up and its text
+// sharpens. Delegated at document level so it survives re-renders; it just feeds
+// the pointer position (relative to the hovered panel) into CSS custom properties.
+document.addEventListener('pointermove', (e) => {
+  const panel = e.target.closest('.panel');
+  if (!panel) return;
+  const r = panel.getBoundingClientRect();
+  panel.style.setProperty('--mx', `${e.clientX - r.left}px`);
+  panel.style.setProperty('--my', `${e.clientY - r.top}px`);
+}, { passive: true });
 
 createGrassField(document.getElementById('bg-canvas'));

@@ -97,6 +97,33 @@ a:hover { color: #bcdcff; }
   opacity: 0.3; mix-blend-mode: soft-light; pointer-events: none;
 }
 
+/* — hover spotlight: the panel the cursor is over lights up and its text sharpens.
+   The glow sits at z-index -1 (above the glass fill, below the text) and follows
+   the pointer via --mx/--my set in main.js. `isolation` keeps it inside the card. */
+.panel {
+  isolation: isolate;
+  transition: transform 0.28s ease, box-shadow 0.28s ease,
+              background-color 0.28s ease, border-color 0.28s ease;
+}
+.panel::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  border-radius: inherit; pointer-events: none;
+  background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%),
+                              rgba(127, 176, 224, 0.20), transparent 55%);
+  opacity: 0; transition: opacity 0.28s ease;
+}
+.panel:hover {
+  border-color: var(--color-accent);
+  background-color: rgba(13, 20, 30, 0.74);
+  box-shadow: 0 16px 48px rgba(6, 12, 20, 0.5), 0 0 42px rgba(127, 176, 224, 0.22);
+  transform: translateY(-3px);
+}
+.panel:hover::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .panel { transition: box-shadow 0.28s ease, background-color 0.28s ease, border-color 0.28s ease; }
+  .panel:hover { transform: none; }
+}
+
 /* — buttons — */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
