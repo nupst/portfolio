@@ -29,6 +29,7 @@ const SPECIES = [
     petals: 9,
     petal: { length: 0.020, width: 0.007, cup: 0.005, arc: 1.2, wave: 0.0010, waveFreq: 2, profile: { a: 0.15, b: 0.3 } },
     open: [1.25, 1.55],
+    sizeScale: 1.2,   // daisies 20% larger overall
     petalColor: 0xf6f2e4, petalBase: 0xe7dfb4, core: 0xc4691a, // dark-orange centre
     weight: 3,
   },
@@ -47,6 +48,7 @@ const SPECIES = [
     petal: { length: 0.026, width: 0.020, cup: 0.024, arc: 1.15, wave: 0.0030, waveFreq: 6, profile: { a: 1.6, b: 0.2 } },
     open: [0.4, 0.6],       // near-upright → tube, not a flat splay
     petalInset: -0.008,     // push bases OUT → open a central hole (trumpet)
+    sizeScale: 0.8,         // 20% smaller than the other species
     petalColor: 0xd2603a, petalBase: 0xc04c2e, core: 0x38281e,
     weight: 1.2,
   },
@@ -626,7 +628,7 @@ export function createFlowerField({
       phase: Math.random(),
       colorVar: Math.random(),
       open: sp.open[0] + Math.random() * (sp.open[1] - sp.open[0]),
-      size: (0.85 + Math.random() * 0.35) * headScale,
+      size: (0.85 + Math.random() * 0.35) * headScale * (sp.sizeScale ?? 1),
     });
   }
 
