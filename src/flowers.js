@@ -248,6 +248,7 @@ function createPetalGeometry({
 }
 
 const petalVertexShader = /* glsl */ `
+  uniform float uPetalInset;  // pull the petal base toward the head centre (closes the core gap)
   attribute vec3 aCenter;     // flower head position (top of the stalk)
   attribute float aYaw;       // petal angle around the head axis
   attribute float aOpen;      // 0 = closed upright, ~1.5 = fully splayed
@@ -276,7 +277,11 @@ const petalVertexShader = /* glsl */ `
     float co = cos(aOpen), so = sin(aOpen);
     float cy = cos(aYaw), sy = sin(aYaw);
 
-    vec3 pos = rotY(rotX(position * aScale, co, so), cy, sy);
+    // Slide the petal down its own spine so its base overlaps the centre,
+    // covering the ring that used to show between the petals and the core.
+    vec3 lp = position;
+    lp.y -= uPetalInset;
+    vec3 pos = rotY(rotX(lp * aScale, co, so), cy, sy);
     vNormal = rotY(rotX(normal, co, so), cy, sy);
 
     vec3 worldPos = aCenter + pos;
@@ -565,6 +570,8 @@ export function createFlowerField({
   stalkScale = 1,   // multiply stalk height (raises heads toward the grass tips)
   headScale = 1,    // multiply head size (scales petals + core, not placement)
   droop = 0,        // extra petal splay (radians) — >0 tips the petals downward
+  coreScale = 1,    // enlarge the center disc so it meets the petal ring (no gap)
+  petalInset = 0,   // slide petal bases toward the centre (spine units) to close the gap
   glow = 1.25,      // petal/core brightness lift feeding the bloom pass
   sway = 0.16,      // grass-sway units → flower head horizontal travel
   pushRadius = 2.6, // cursor push radius (match the grass field)
@@ -585,6 +592,7 @@ export function createFlowerField({
     uPushR: { value: pushRadius },
     uSwayAmt: { value: sway },
     uGlow: { value: glow },
+    uPetalInset: { value: petalInset },
     // Legacy card-tier wind (only used when cardCount > 0):
     uWindStrength: { value: 0.09 },
     uWindSpeed: { value: wind.speed },
@@ -679,8 +687,8 @@ export function createFlowerField({
   // -- Cores: domed fan, per-instance species color
   {
     const RIM = 8;
-    const positions = [0, 0.003, 0];
-    const uvs = [0.5, 1];
+    const positions = [0, 0.0006, 0];   // near-flat centre (was 0.003) so a bigger
+    const uvs = [0.5, 1];               // core reads as a flat disc, not a bump
     const indices = [];
     for (let i = 0; i <= RIM; i++) {
       const a = (i / RIM) * Math.PI * 2;
@@ -703,7 +711,7 @@ export function createFlowerField({
       offsets[f * 3] = hd.x;
       offsets[f * 3 + 1] = hd.h;
       offsets[f * 3 + 2] = hd.z;
-      scales[f] = hd.size;
+      scales[f] = hd.size * coreScale;
       phases[f] = hd.phase;
       tmp.set(SPECIES[hd.species].core).multiplyScalar(0.9 + hd.colorVar * 0.2);
       colors[f * 3] = tmp.r;

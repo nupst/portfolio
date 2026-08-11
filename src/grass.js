@@ -485,7 +485,9 @@ export function createGrassField(canvas) {
     cardCount: 0,                // cards look wrong top-down — disable
     stalkScale: 1.6,             // raise heads toward the grass tips
     headScale: 6.5,              // enlarge heads so flowers read from above
-    droop: 0,                    // no downward tip — petals splay open, not cupped under
+    droop: -0.2,                 // lift petals slightly upward (open, uncupped)
+    coreScale: 1.8,              // flat, slightly wider centre disc to meet the petals
+    petalInset: 0.004,           // slide petal bases inward so they overlap the centre
     glow: 1.1,                   // gentle brightness lift for the bloom pass
     sway: 0.16,                  // head travel per unit of grass sway
     pushRadius: 2.6,             // match the grass cursor push
@@ -505,8 +507,8 @@ export function createGrassField(canvas) {
   bloomComposer.renderToScreen = false;
   bloomComposer.addPass(new RenderPass(scene, camera, null, new THREE.Color(0, 0, 0), 1));
   // strength, radius, threshold — a faint halo on the brightest flowers only
-  // (strength 0.075 = the earlier 0.75 cut 10×, per request).
-  const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.075, 0.35, 0.6);
+  // (0.0225 = 30% of the earlier 0.075, per request).
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.0225, 0.35, 0.6);
   bloomComposer.addPass(bloomPass);
 
   const finalComposer = new EffectComposer(renderer);
