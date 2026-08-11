@@ -44,7 +44,6 @@ const SPECIES = [
     petals: 5,
     petal: { length: 0.020, width: 0.024, cup: 0.010, arc: 0.9, wave: 0.0030, waveFreq: 6, profile: { a: 0.9, b: 0.12 } },
     open: [0.9, 1.2],
-    droop: 0.3,   // this orange flower cups down noticeably more than the rest
     petalColor: 0xd2603a, petalBase: 0xc04c2e, core: 0x38281e,
     weight: 1.2,
   },
