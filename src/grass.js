@@ -3,12 +3,13 @@
 // glow around the cursor), fog fading into the page background (#050807).
 import * as THREE from 'three';
 
-const BG = new THREE.Color('#050807');
-const GROUND = new THREE.Color('#081009');
-const BLADE_BASE = new THREE.Color('#152c22');
-const BLADE_TIP = new THREE.Color('#5a9a70');
-const BLADE_DRY = new THREE.Color('#6f9a58'); // warm-green variation for natural mix
-const HOT = new THREE.Color('#9ed0b0');       // cursor glow — same as old effect
+// Adobe palette: olive greens fading to earthy browns.
+const BG = new THREE.Color('#cfe6da');        // bright daylight haze — no black background
+const GROUND = new THREE.Color('#593a2f');    // dark earthy brown ground (#593A2F)
+const BLADE_BASE = new THREE.Color('#735d34'); // olive-brown root (#735D34)
+const BLADE_TIP = new THREE.Color('#788c30');  // bright olive-green tip (#788C30)
+const BLADE_DRY = new THREE.Color('#6b732f');  // duller olive-green variation (#6B732F)
+const HOT = new THREE.Color('#cdd98a');        // light olive cursor highlight
 
 const VERT = /* glsl */ `
   uniform float uTime;
@@ -16,6 +17,9 @@ const VERT = /* glsl */ `
   uniform float uMouseOn;   // 0..1 pointer presence
   uniform float uPushR;     // interaction radius
   uniform float uWind;      // wind strength
+  uniform float uSunRadius;  // radius of the overhead sun pool
+  uniform float uGroundR;      // ground disc radius (for UV mapping)
+  uniform float uGroundRepeat; // ground texture repeat
 
   attribute vec3 aOffset;   // blade root position
   attribute vec4 aRand;     // x: yaw, y: height mul, z: phase, w: color jitter
@@ -27,6 +31,9 @@ const VERT = /* glsl */ `
   varying float vFogDepth;
   varying vec3 vNormal;     // world-space blade face normal (for lighting)
   varying float vTint;      // low-freq spatial colour variation
+  varying float vCloud;     // drifting sunlight patches (cloud shadows)
+  varying float vSunPool;   // overhead sun pool — bright centre, fades to edge
+  varying vec2 vGroundUV;   // ground-texture coord under this blade
 
   // — Ashima 2D simplex noise — a smooth, continuous field used for wind.
   vec3 mod289(vec3 x){return x - floor(x*(1.0/289.0))*289.0;}
@@ -74,11 +81,32 @@ const VERT = /* glsl */ `
     float breeze = 0.6 + 0.4 * snoise(aOffset.xz * 0.02 - windDir * (uTime * 0.22)); // slow strength drift
     float lateral = snoise(wp * 1.3 + 21.0) * 0.22;                          // gentle sideways sway
     float forward = (gust * 0.7 + 0.3) * breeze;                             // mostly downwind, mild backsway
-    vec2 sway = (windDir * forward + perp * lateral) * uWind
-              + vec2(cos(yaw), sin(yaw)) * aLean;                            // + static resting lean
+
+    // Every blade carries an intrinsic resting curl along its own facing
+    // direction (always > 0), so it shows a natural bend even with no wind.
+    vec2 faceDir = vec2(cos(yaw), sin(yaw));
+    float restCurl = 0.42 + 0.30 * fract(aRand.z * 0.1592);                  // 0.42 .. 0.72 per blade
+    vec2 sway = faceDir * (restCurl + aLean * 0.35)
+              + (windDir * forward + perp * lateral) * uWind;                // wind on top
 
     // Low-frequency spatial tint → soft colour patches across the field.
     vTint = snoise(aOffset.xz * 0.045 + 50.0);
+
+    // Dappled sunlight: two low-frequency patch fields drifting with the wind,
+    // mapped to 0 (in shade) .. 1 (full sun) with plenty of spread so bright and
+    // shadowed patches sweep visibly across the meadow.
+    float cl = snoise(aOffset.xz * 0.05 - windDir * (uTime * 0.28) + 33.0) * 0.6
+             + snoise(aOffset.xz * 0.11 - windDir * (uTime * 0.42) + 12.0) * 0.4;
+    vCloud = clamp(cl * 1.1 + 0.5, 0.0, 1.0);
+
+    // Overhead sun: a broad pool of light pouring straight down at the centre,
+    // fading out toward the edges of the field (sun high above the viewer).
+    float sunDist = length(aOffset.xz) / uSunRadius;
+    vSunPool = 1.0 - smoothstep(0.1, 1.0, sunDist);
+
+    // Ground-texture UV under the blade root (matches the ground disc's mapping).
+    vGroundUV = vec2((aOffset.x / uGroundR + 1.0) * 0.5,
+                     (-aOffset.z / uGroundR + 1.0) * 0.5) * uGroundRepeat;
 
     // Pointer: push blades away from the cursor. Keyed off the root so the whole
     // blade reacts together (stable) instead of feeding back on the tip.
@@ -87,15 +115,17 @@ const VERT = /* glsl */ `
     float k = 1.0 - smoothstep(0.0, uPushR, r);
     float push = k * k * (0.35 + 0.65 * uMouseOn);
     vPush = push;
-    sway += (d / r) * push * 1.4;
+    sway += (d / r) * push * 0.6;   // gentle: the cursor only leans blades aside, never flattens them
 
     // Bend the centreline as a CIRCULAR ARC of fixed length. Each vertex is
     // placed by its along-blade arc length s = t * height on a circle, so the
     // length measured ALONG the blade stays exactly uHeight for any bend — the
     // blade curves over but can never be pulled longer than a single blade.
     float swayLen = length(sway);
-    vec2 bd = swayLen > 1e-4 ? sway / swayLen : vec2(0.0);  // bend direction
-    float phi = clamp(swayLen * 0.55, 0.0, 1.15);          // total bend angle — capped so blades stay upright, never lie flat
+    vec2 bd = swayLen > 0.04 ? sway / swayLen : faceDir;   // always a valid bend direction
+    // Min keeps EVERY blade curved; the low max means wind/cursor only sway and
+    // lean the blades — they never bend flat (which read as stretching).
+    float phi = clamp(swayLen * 0.5, 0.18, 0.7);
     float safePhi = max(phi, 1e-3);
     float R = height / safePhi;                            // arc radius (length / angle)
     float alpha = t * safePhi;                             // angle at arc length t*height
@@ -134,6 +164,11 @@ const FRAG = /* glsl */ `
   uniform float uSunStrength;
   uniform vec3 uSkyColor;    // hemisphere ambient — sky (up)
   uniform vec3 uGroundColor; // hemisphere ambient — ground (down)
+  uniform float uSunRadius;  // radius of the overhead sun pool
+  uniform sampler2D uShadowMap; // screen-space shadows cast by the UI cards
+  uniform vec2 uResolution;     // drawing-buffer size in pixels
+  uniform sampler2D uGroundTex; // ground material — grass roots blend into it
+  uniform float uHasGroundTex;
 
   varying float vT;
   varying float vJitter;
@@ -141,6 +176,9 @@ const FRAG = /* glsl */ `
   varying float vFogDepth;
   varying vec3 vNormal;
   varying float vTint;
+  varying float vCloud;
+  varying float vSunPool;
+  varying vec2 vGroundUV;
 
   void main() {
     // Soft blade colour. Tip hue blends per-blade jitter with the low-freq
@@ -155,6 +193,14 @@ const FRAG = /* glsl */ `
     vec3 albedo = mix(rootCol, tipCol, g);
     albedo *= 0.84 + 0.16 * vT;   // gentle base shading
 
+    // Blend the blade root into the actual ground material beneath it, so the
+    // grass reads as growing out of the earth rather than floating on it.
+    if (uHasGroundTex > 0.5) {
+      vec3 gcol = texture2D(uGroundTex, vGroundUV).rgb;
+      float rootBlend = (1.0 - smoothstep(0.0, 0.45, vT)) * 0.8;
+      albedo = mix(albedo, gcol, rootBlend);
+    }
+
     // — world lighting —
     vec3 N = normalize(vNormal);
     // Half-lambert sun: smooth across the double-sided blades, no hard flip.
@@ -162,7 +208,23 @@ const FRAG = /* glsl */ `
     // Hemisphere ambient: up-facing catches sky, down-facing the ground.
     float hemi = N.y * 0.5 + 0.5;
     vec3 ambient = mix(uGroundColor, uSkyColor, hemi);
-    vec3 col = albedo * (ambient + uSunColor * (diff * uSunStrength));
+    // Overhead sun pool × drifting cloud dapple = the amount of sun on this blade.
+    // Bright daytime: shaded patches stay well-lit, sun pool only adds highlight.
+    float sunAmt = mix(0.62, 1.35, vCloud) * (0.7 + 0.5 * vSunPool);
+    float sun = diff * uSunStrength * sunAmt;
+    vec3 col = albedo * (ambient + uSunColor * sun);
+
+    // Warm light pouring down onto the tips under the sun pool — the "sun".
+    float toTip = smoothstep(0.2, 1.0, vT);
+    col += uSunColor * vSunPool * toTip * (0.4 + 0.6 * vCloud) * 0.55;
+
+    // Extra sheen where the sun directly catches sunlit tips.
+    float sheen = pow(max(diff, 0.0), 3.0) * toTip * smoothstep(0.45, 1.0, vCloud) * vSunPool;
+    col += uSunColor * sheen * 0.5;
+
+    // Soft shadows dropped by the floating UI cards (screen-space map).
+    float cardShadow = texture2D(uShadowMap, clamp(gl_FragCoord.xy / uResolution, 0.0, 1.0)).a;
+    col *= 1.0 - cardShadow * 0.5;
 
     // Interaction: ONLY the touched blades brighten — no glow in the air.
     col += uHot * vPush * (0.3 + 0.7 * vT);
@@ -227,7 +289,7 @@ export function createGrassField(canvas) {
   const LOOK_AT = new THREE.Vector3(0, 0, 0);
   camera.lookAt(LOOK_AT);
 
-  const fogDensity = 0.026;
+  const fogDensity = 0.02;
 
   // — ground disc under the blades — lit by real lights so it matches the sun —
   const ground = new THREE.Mesh(
@@ -241,9 +303,9 @@ export function createGrassField(canvas) {
 
   // World lighting for the ground (the blades are lit inside their own shader,
   // with uLightDir kept in sync with this sun direction).
-  scene.add(new THREE.HemisphereLight(0x9fb4bd, 0x1a2019, 0.9));
-  const sun = new THREE.DirectionalLight(0xffe9c4, 1.2);
-  sun.position.set(-0.35, 0.82, 0.45);
+  scene.add(new THREE.HemisphereLight(0xe4eef2, 0x55603f, 1.25));
+  const sun = new THREE.DirectionalLight(0xfff3d2, 1.6);
+  sun.position.set(0.12, 0.97, 0.16);
   scene.add(sun);
 
   // Rocky/mossy ground texture. Save the supplied image to
@@ -256,8 +318,11 @@ export function createGrassField(canvas) {
       tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
       if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
       ground.material.map = tex;
-      ground.material.color.set(0xbfbfbf); // slight darken to blend with the dark meadow
+      ground.material.color.set(0xffffff); // full daylight
       ground.material.needsUpdate = true;
+      // Share the texture with the grass shader so blade roots blend into it.
+      uniforms.uGroundTex.value = tex;
+      uniforms.uHasGroundTex.value = 1;
     },
     undefined,
     () => { /* texture missing — keep the flat colour, no error */ }
@@ -316,11 +381,18 @@ export function createGrassField(canvas) {
     uHot: { value: HOT },
     uFog: { value: BG },
     uFogDensity: { value: fogDensity },
-    uLightDir: { value: new THREE.Vector3(-0.35, 0.82, 0.45).normalize() },
-    uSunColor: { value: new THREE.Color('#ffe9c4') },
-    uSunStrength: { value: 0.85 },
-    uSkyColor: { value: new THREE.Color('#7d97a0') },
-    uGroundColor: { value: new THREE.Color('#1f2b22') }
+    uLightDir: { value: new THREE.Vector3(0.12, 0.97, 0.16).normalize() }, // nearly straight down
+    uSunColor: { value: new THREE.Color('#fff3d2') },
+    uSunStrength: { value: 1.15 },
+    uSkyColor: { value: new THREE.Color('#c2dae0') },
+    uGroundColor: { value: new THREE.Color('#5c4a30') }, // warm earthy bounce (palette browns)
+    uSunRadius: { value: FIELD },
+    uShadowMap: { value: null },
+    uResolution: { value: new THREE.Vector2(1, 1) },
+    uGroundTex: { value: null },
+    uHasGroundTex: { value: 0 },
+    uGroundR: { value: 70 },        // must match the ground disc radius
+    uGroundRepeat: { value: 26 }    // must match ground texture repeat
   };
   const mat = new THREE.ShaderMaterial({
     vertexShader: VERT,
@@ -331,6 +403,51 @@ export function createGrassField(canvas) {
   const grass = new THREE.Mesh(geo, mat);
   grass.frustumCulled = false;
   scene.add(grass);
+
+  // — screen-space shadows from the floating UI cards —
+  // The glass cards are DOM elements above the canvas, so real shadow mapping
+  // can't see them. Instead their viewport rects are drawn (offset along the
+  // sun direction, blurred for softness) into a small canvas that the grass
+  // shader samples by gl_FragCoord.
+  const SHADOW_SCALE = 0.25;                 // quarter-res is plenty for soft blobs
+  const SHADOW_OFF_X = 16, SHADOW_OFF_Y = 20; // px, opposite the sun (upper-left)
+  const shadowCanvas = document.createElement('canvas');
+  const shadowCtx = shadowCanvas.getContext('2d');
+  const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+  shadowTex.minFilter = THREE.LinearFilter;
+  shadowTex.magFilter = THREE.LinearFilter;
+  shadowTex.wrapS = shadowTex.wrapT = THREE.ClampToEdgeWrapping;
+  shadowTex.generateMipmaps = false;
+  uniforms.uShadowMap.value = shadowTex;
+
+  let shadowDirty = true;
+  function updateCardShadows() {
+    shadowDirty = false;
+    const w = Math.max(1, Math.round(innerWidth * SHADOW_SCALE));
+    const h = Math.max(1, Math.round(innerHeight * SHADOW_SCALE));
+    if (shadowCanvas.width !== w || shadowCanvas.height !== h) {
+      shadowCanvas.width = w;
+      shadowCanvas.height = h;
+    }
+    shadowCtx.setTransform(1, 0, 0, 1, 0, 0);
+    shadowCtx.clearRect(0, 0, w, h);
+    shadowCtx.filter = `blur(${Math.max(2, 6 * SHADOW_SCALE * 4)}px)`;
+    shadowCtx.fillStyle = 'rgba(0,0,0,0.9)';
+    const els = document.querySelectorAll('.panel, .contact, .site-header');
+    for (const el of els) {
+      const r = el.getBoundingClientRect();
+      if (r.bottom < -80 || r.top > innerHeight + 80 || r.width === 0) continue;
+      shadowCtx.fillRect(
+        (r.left + SHADOW_OFF_X) * SHADOW_SCALE,
+        (r.top + SHADOW_OFF_Y) * SHADOW_SCALE,
+        r.width * SHADOW_SCALE,
+        r.height * SHADOW_SCALE
+      );
+    }
+    shadowTex.needsUpdate = true;
+  }
+  const markShadowsDirty = () => { shadowDirty = true; };
+  addEventListener('scroll', markShadowsDirty, { passive: true });
 
   // — pointer → ground-plane raycast —
   const raycaster = new THREE.Raycaster();
@@ -366,6 +483,8 @@ export function createGrassField(canvas) {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    renderer.getDrawingBufferSize(uniforms.uResolution.value);
+    shadowDirty = true;
   }
   resize();
   addEventListener('resize', resize);
@@ -377,10 +496,18 @@ export function createGrassField(canvas) {
   let raf = 0;
   let running = true;
 
+  let shadowTick = 0;
   function frame() {
     raf = requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.05);
     uniforms.uTime.value += dt * timeScale;
+
+    // Refresh card shadows when scrolled/resized, plus a slow periodic pass to
+    // catch layout changes (language toggle, content edits).
+    if (shadowDirty || ++shadowTick >= 60) {
+      shadowTick = 0;
+      updateCardShadows();
+    }
 
     uniforms.uMouse.value.lerp(targetMouse, 1 - Math.pow(0.0008, dt));
     uniforms.uMouseOn.value += (targetOn - uniforms.uMouseOn.value) * Math.min(1, dt * 3);
@@ -418,6 +545,8 @@ export function createGrassField(canvas) {
       cancelAnimationFrame(raf);
       removeEventListener('pointermove', onMove);
       removeEventListener('resize', resize);
+      removeEventListener('scroll', markShadowsDirty);
+      shadowTex.dispose();
       renderer.dispose();
     }
   };

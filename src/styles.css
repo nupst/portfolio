@@ -40,7 +40,7 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  background: #050807;
+  background: #cfe6da;
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: 16px;
@@ -140,16 +140,37 @@ textarea.input { min-height: 74px; resize: vertical; }
 #bg-canvas {
   position: fixed; inset: 0; width: 100%; height: 100%;
   z-index: 0; pointer-events: none; display: block;
-  background: radial-gradient(ellipse at 50% 45%, #16211c 0%, #0b1210 52%, #050807 100%);
+  background: radial-gradient(ellipse at 50% 45%, #dcefe0 0%, #cfe6da 55%, #bcd8cc 100%);
 }
-/* Vignette + readability shade above the grass, below the content */
+/* Very soft edge shade only — keeps the daylight field bright, no black. */
 #bg-vignette {
   position: fixed; inset: 0; z-index: 1; pointer-events: none;
-  background:
-    radial-gradient(ellipse at 50% 50%, transparent 42%, rgba(0, 0, 0, 0.55) 100%),
-    linear-gradient(180deg, rgba(3, 5, 4, 0.35) 0%, transparent 18%);
+  background: radial-gradient(ellipse at 50% 48%, transparent 62%, rgba(40, 60, 45, 0.18) 100%);
 }
 #page { position: relative; z-index: 2; }
+
+/* Legibility: light text that floats directly over the bright grass gets a soft
+   dark halo so it stays readable without a solid background. Cards have their
+   own glass panel and are excluded. */
+.hero h1, .hero .tagline, .hero-avail span,
+.site-footer .inner {
+  text-shadow: 0 1px 12px rgba(10, 20, 12, 0.85), 0 0 3px rgba(10, 20, 12, 0.7);
+}
+
+/* Content sections below the hero sit on a frosted dark reading surface so the
+   whole content column stands out clearly against the bright meadow, while the
+   grass still glows through the blur and shows in the side margins. */
+#work, #services, #stack, #process, #testimonials, #writing {
+  background: rgba(9, 14, 20, 0.55);
+  backdrop-filter: blur(12px) saturate(118%);
+  -webkit-backdrop-filter: blur(12px) saturate(118%);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding-left: 30px;
+  padding-right: 30px;
+  margin-bottom: 12px;
+  box-shadow: 0 18px 50px rgba(6, 12, 8, 0.45);
+}
 
 .site-header {
   position: sticky; top: 0; z-index: 20;
