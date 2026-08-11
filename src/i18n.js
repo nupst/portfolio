@@ -19,9 +19,18 @@ export const COPY = {
   }
 };
 
+/** Default language from the browser/system locale (Vietnamese → vi, else en). */
+function systemLang() {
+  const list = (typeof navigator !== 'undefined'
+    && (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]))
+    || [];
+  return list.some((l) => l && l.toLowerCase().startsWith('vi')) ? 'vi' : 'en';
+}
+
 export function getLang() {
   const stored = localStorage.getItem(LANG_KEY);
-  return stored === 'en' || stored === 'vi' ? stored : 'vi';
+  if (stored === 'en' || stored === 'vi') return stored;
+  return systemLang();
 }
 
 export function setLang(lang) {

@@ -28,7 +28,6 @@ function render() {
 
   document.getElementById('brand').textContent = p.name;
   document.getElementById('lang-toggle').textContent = c.langLabel;
-  document.getElementById('admin-link').textContent = c.nav.admin;
 
   document.getElementById('nav').innerHTML = `
     <a href="#work">${esc(c.nav.work)}</a>
@@ -173,8 +172,7 @@ function render() {
 
   // — footer —
   document.getElementById('footer').innerHTML = `
-    <span>© ${new Date().getFullYear()} ${esc(p.name)}</span>
-    <a href="./admin.html">${esc(c.nav.admin)}</a>`;
+    <span>© ${new Date().getFullYear()} ${esc(p.name)}</span>`;
 }
 
 render();
