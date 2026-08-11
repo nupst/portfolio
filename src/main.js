@@ -127,16 +127,19 @@ function render() {
         </div>`).join('')}
     </div>`;
 
-  // — testimonials —
-  document.getElementById('testimonials').innerHTML = sectionHead('06', c.headings.testimonials) + `
-    <div class="grid-2">
-      ${(d.testimonials || []).map((x) => `
-        <blockquote class="quote blueprint panel">
-          ${corners()}
-          <p>“${esc(T(x.quote))}”</p>
-          <footer>${esc(x.author)} · ${esc(x.company)}</footer>
-        </blockquote>`).join('')}
-    </div>`;
+  // — testimonials — (hidden when empty, same as writing below)
+  const testimonials = d.testimonials || [];
+  document.getElementById('testimonials').innerHTML = testimonials.length
+    ? sectionHead('06', c.headings.testimonials) + `
+      <div class="grid-2">
+        ${testimonials.map((x) => `
+          <blockquote class="quote blueprint panel">
+            ${corners()}
+            <p>“${esc(T(x.quote))}”</p>
+            <footer>${esc(x.author)} · ${esc(x.company)}</footer>
+          </blockquote>`).join('')}
+      </div>`
+    : '';
 
   // — writing —
   const posts = d.posts || [];

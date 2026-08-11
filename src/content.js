@@ -1,64 +1,75 @@
 // Portfolio content store — default data + localStorage persistence.
-export const KEY = 'portfolio.content.v1';
+// Bump the version suffix whenever DEFAULT changes so cached content in
+// localStorage does not mask the new defaults on existing visitors.
+export const KEY = 'portfolio.content.v2';
 
 export const uid = () => Math.random().toString(36).slice(2, 9);
 
 export const DEFAULT = {
   profile: {
-    name: 'Nguyễn Văn A',
-    role: { vi: 'Kỹ sư phần mềm Full-stack', en: 'Full-stack Software Engineer' },
+    name: 'Tín Trần',
+    role: {
+      vi: 'Kỹ sư phần mềm · R&D & Đồ họa thời gian thực',
+      en: 'Software Engineer · R&D & Real-time Graphics'
+    },
     tagline: {
-      vi: 'Tôi xây sản phẩm web, mobile và hệ thống backend cho startup và doanh nghiệp. 6 năm kinh nghiệm, làm việc trực tiếp, bàn giao đúng hẹn.',
-      en: 'I build web, mobile and backend systems for startups and companies. 6 years of experience, direct collaboration, delivered on time.'
+      vi: '8 năm phát triển phần mềm. Hiện là key member trong một dự án R&D automotive cho khách hàng Nhật — nơi công việc là luôn đổi mới và chinh phục mọi nhiệm vụ phi lý từ ý tưởng của khách.',
+      en: '8 years building software. Currently a key member of an automotive R&D project for a Japanese client — where the job is to keep innovating and conquer every seemingly impossible idea the client throws at us.'
     },
     about: {
-      vi: 'Tôi nhận dự án freelance từ ý tưởng đến khi lên production: kiến trúc, phát triển, triển khai và bàn giao tài liệu. Quen làm việc async với đội ngũ nước ngoài.',
-      en: 'I take freelance projects from idea to production: architecture, development, deployment and handover docs. Comfortable working async with overseas teams.'
+      vi: '8 năm kinh nghiệm: 4 năm freelance và 4 năm tại FPT Software. Tôi biến những ý tưởng phi lý nhất thành sản phẩm chạy được — từ engine game, đồ họa/shader thời gian thực đến công cụ AI. Ngoài giờ tôi liên tục xây engine, công cụ procedural và ứng dụng thử nghiệm để không ngừng học và đẩy giới hạn.',
+      en: '8 years of experience: 4 years freelancing and 4 years at FPT Software. I turn the most far-fetched ideas into working products — from game engines and real-time graphics/shaders to AI tools. After hours I keep building engines, procedural tooling and experimental apps to keep pushing my limits.'
     },
-    location: 'Hà Nội, Việt Nam (GMT+7)',
-    email: 'hello@example.com',
-    phone: '+84 900 000 000',
-    availability: { vi: 'Còn nhận 1 dự án từ tháng 9', en: 'Open for 1 project from September' },
+    location: 'Việt Nam (GMT+7)',
+    email: 'tptin.dev@gmail.com',
+    phone: '0778010476',
+    availability: {
+      vi: 'Nhận trao đổi dự án đồ họa / engine / R&D',
+      en: 'Open to graphics / engine / R&D collaborations'
+    },
     links: [
-      { id: uid(), label: 'GitHub', url: 'https://github.com/' },
-      { id: uid(), label: 'LinkedIn', url: 'https://linkedin.com/' },
-      { id: uid(), label: 'Email', url: 'mailto:hello@example.com' }
+      { id: uid(), label: 'GitHub', url: 'https://github.com/tptindev' },
+      { id: uid(), label: 'Email', url: 'mailto:tptin.dev@gmail.com' }
     ]
   },
   services: [
-    { id: uid(), name: { vi: 'Sản phẩm web trọn gói', en: 'Full web product' }, desc: { vi: 'Frontend, API, database và triển khai. Phù hợp MVP hoặc sản phẩm nội bộ.', en: 'Frontend, API, database and deployment. Fits MVPs and internal tools.' }, price: 'từ 60tr / from $2,400', unit: { vi: 'theo dự án', en: 'per project' } },
-    { id: uid(), name: { vi: 'Tích hợp AI / LLM', en: 'AI / LLM integration' }, desc: { vi: 'RAG, agent, tự động hoá quy trình bằng LLM, kèm đánh giá chất lượng đầu ra.', en: 'RAG, agents, LLM workflow automation, with output evaluation.' }, price: 'từ 35tr / from $1,400', unit: { vi: 'theo dự án', en: 'per project' } },
-    { id: uid(), name: { vi: 'Thuê theo tháng', en: 'Monthly retainer' }, desc: { vi: 'Tham gia đội ngũ của bạn 20–40 giờ/tuần, cam kết tối thiểu 1 tháng.', en: 'Join your team 20–40 hrs/week, one month minimum.' }, price: '25 USD/giờ / $25/hr', unit: { vi: 'theo giờ', en: 'hourly' } }
+    { id: uid(), name: { vi: 'Đồ họa & shader thời gian thực', en: 'Real-time graphics & shaders' }, desc: { vi: 'Rendering, shader (GLSL/WGSL), procedural generation và tối ưu hiệu năng cho web, desktop và game.', en: 'Rendering, shaders (GLSL/WGSL), procedural generation and performance tuning for web, desktop and games.' }, price: 'Trao đổi / On request', unit: { vi: 'theo dự án', en: 'per project' } },
+    { id: uid(), name: { vi: 'Prototyping R&D', en: 'R&D prototyping' }, desc: { vi: 'Biến ý tưởng phi lý thành proof-of-concept chạy được nhanh, đủ để chứng minh tính khả thi và ra quyết định.', en: 'Turning far-fetched ideas into fast working proof-of-concepts — enough to prove feasibility and drive decisions.' }, price: 'Trao đổi / On request', unit: { vi: 'theo dự án', en: 'per project' } },
+    { id: uid(), name: { vi: 'Game engine & công cụ', en: 'Engine & tooling' }, desc: { vi: 'Xây engine, editor và pipeline bằng C++/Rust: ECS, physics, rendering, hot-reload và công cụ nội bộ.', en: 'Building engines, editors and pipelines in C++/Rust: ECS, physics, rendering, hot-reload and internal tooling.' }, price: 'Trao đổi / On request', unit: { vi: 'theo dự án', en: 'per project' } }
   ],
   projects: [
-    { id: uid(), title: 'Fleetline', year: '2025', kicker: { vi: 'Logistics · Full-stack', en: 'Logistics · Full-stack' }, summary: { vi: 'Hệ thống điều phối xe tải thời gian thực cho 120 tài xế. React, NestJS, PostgreSQL, WebSocket.', en: 'Real-time truck dispatch system for 120 drivers. React, NestJS, PostgreSQL, WebSocket.' }, result: { vi: 'Giảm 31% thời gian điều xe', en: '31% faster dispatch' }, tags: ['React', 'NestJS', 'PostgreSQL'], url: '' },
-    { id: uid(), title: 'Mint Ledger', year: '2024', kicker: { vi: 'Fintech · Backend', en: 'Fintech · Backend' }, summary: { vi: 'API đối soát giao dịch xử lý 4 triệu bản ghi/ngày, hàng đợi Kafka và báo cáo tự động.', en: 'Reconciliation API processing 4M records/day, Kafka queues and automated reporting.' }, result: { vi: 'Đối soát từ 6 giờ xuống 12 phút', en: 'Reconciliation from 6h to 12min' }, tags: ['Go', 'Kafka', 'AWS'], url: '' },
-    { id: uid(), title: 'Nomi', year: '2024', kicker: { vi: 'Mobile · AI', en: 'Mobile · AI' }, summary: { vi: 'Ứng dụng ghi chú giọng nói với tóm tắt LLM, offline-first. React Native, Whisper, Claude API.', en: 'Voice note app with LLM summaries, offline-first. React Native, Whisper, Claude API.' }, result: { vi: '18k lượt tải trong 3 tháng', en: '18k downloads in 3 months' }, tags: ['React Native', 'LLM', 'Supabase'], url: '' }
+    { id: uid(), title: 'Lotus Engine', year: '2025', kicker: { vi: 'Game Engine · C++20', en: 'Game Engine · C++20' }, summary: { vi: 'Engine game 2D + 3D viết from scratch với bgfx, EnTT ECS, SDL3, Box2D và Jolt physics, kèm editor docking (Dear ImGui).', en: 'From-scratch 2D + 3D game engine with bgfx, EnTT ECS, SDL3, Box2D and Jolt physics, plus a Dear ImGui docking editor.' }, result: { vi: 'Engine + editor + 2 sample hoàn chỉnh', en: 'Full engine + editor + 2 samples' }, tags: ['C++20', 'bgfx', 'EnTT', 'ImGui'], url: '' },
+    { id: uid(), title: 'Environment Editor', year: '2025', kicker: { vi: 'Đồ họa 3D · Công cụ', en: '3D Graphics · Tooling' }, summary: { vi: 'Công cụ tạo rừng thông sương mù procedural với camera điện ảnh và hậu kỳ thật (DoF, tilt-shift, motion blur, color grade). Electron + Three.js + React.', en: 'Procedural misty pine-forest tool with a cinematic camera rig and real post-processing (DoF, tilt-shift, motion blur, color grades). Electron + Three.js + React.' }, result: { vi: '16 chế độ camera, xuất WebM/PNG', en: '16 camera modes, WebM/PNG export' }, tags: ['Three.js', 'Electron', 'React', 'GLSL'], url: '' },
+    { id: uid(), title: 'ProcRock', year: '2025', kicker: { vi: 'Procedural · 3D', en: 'Procedural · 3D' }, summary: { vi: 'Trình tạo đá procedural: icosphere biến dạng bằng noise fBm có seed, gợi ý tham số bằng AI, vật liệu PBR triplanar, xuất glb/obj/stl.', en: 'Procedural rock generator: icosphere displaced by seeded fBm noise, AI parameter suggestions, triplanar PBR materials, export to glb/obj/stl.' }, result: { vi: 'Xuất mesh in 3D (STL) không seam', en: '3D-print-ready STL, no seams' }, tags: ['Three.js', 'Electron', 'TypeScript'], url: '' },
+    { id: uid(), title: 'rayindie', year: '2025', kicker: { vi: 'Đồ họa thời gian thực · C++', en: 'Real-time Graphics · C++' }, summary: { vi: 'Demo lái xe 3D trên raylib: terrain và đường procedural vô tận, đèn Blinn-Phong thời gian thực, xe glTF tự lái.', en: '3D driving vignette on raylib: endless procedural terrain and road, real-time Blinn-Phong lighting, an auto-driving glTF car.' }, result: { vi: 'Terrain + đường vô tận thời gian thực', en: 'Endless real-time terrain + road' }, tags: ['C++23', 'raylib', 'GLSL'], url: '' },
+    { id: uid(), title: 'Shader Thinking Tool', year: '2025', kicker: { vi: 'Shader · Công cụ học tập', en: 'Shaders · Learning tool' }, summary: { vi: 'Lab học shader: node graph biên dịch ra GLSL, preview WebGL trực tiếp, mô phỏng trên CPU, trợ lý AI và xuất code raylib C++.', en: 'Shader learning lab: node graph that compiles to GLSL, live WebGL preview, CPU simulation, an AI assistant and raylib C++ code export.' }, result: { vi: 'Node graph → GLSL + mô phỏng CPU', en: 'Node graph → GLSL + CPU sim' }, tags: ['React', 'Three.js', 'WebGL', 'TypeScript'], url: '' },
+    { id: uid(), title: 'Procedural Vegetation Studio', year: '2025', kicker: { vi: 'Procedural · 3D', en: 'Procedural · 3D' }, summary: { vi: 'Trình tạo thực vật procedural trên web: 14 loài cây, texture PBR sinh từ noise, cành cong Catmull-Rom với gió, xuất GLB kèm texture.', en: 'Web procedural vegetation generator: 14 species, noise-based PBR textures, Catmull-Rom branches with wind, GLB export with embedded textures.' }, result: { vi: '14 loài cây, xuất GLB dùng ngay', en: '14 species, ready-to-use GLB export' }, tags: ['Three.js', 'JavaScript', 'WebGL'], url: '' },
+    { id: uid(), title: 'Trợ Lý', year: '2025', kicker: { vi: 'Voice AI · Android', en: 'Voice AI · Android' }, summary: { vi: 'Trợ lý giọng nói cho người lớn tuổi nói giọng Nam: wake word offline (Vosk), nhận dạng và hiểu ý bằng Whisper/GPT, SOS khẩn cấp, điều khiển app rảnh tay.', en: 'Voice assistant for elderly Southern-Vietnamese speakers: offline wake word (Vosk), Whisper/GPT transcription and intent, emergency SOS, hands-free app control.' }, result: { vi: 'Điều khiển điện thoại rảnh tay cho người lớn tuổi', en: 'Hands-free phone control for elders' }, tags: ['Kotlin', 'Android', 'Whisper', 'LLM'], url: '' },
+    { id: uid(), title: 'Frog Pond', year: '2025', kicker: { vi: 'Game · Bevy / Rust', en: 'Game · Bevy / Rust' }, summary: { vi: 'Game hành động top-down trên Bevy 0.18: ếch cầm vũ khí dây xích, hậu kỳ CRT (scanline, cong, vignette), nước procedural và dây xích Verlet.', en: 'Top-down action game on Bevy 0.18: a frog with a chain weapon, CRT post-processing (scanlines, curvature, vignette), procedural water and Verlet-rope chain.' }, result: { vi: 'CRT shader + dây xích Verlet, combo game-feel', en: 'CRT shader + Verlet chain, juicy game-feel' }, tags: ['Rust', 'Bevy', 'WGSL'], url: '' },
+    { id: uid(), title: 'CodeDirector', year: '2025', kicker: { vi: 'Dev Tooling · Video', en: 'Dev Tooling · Video' }, summary: { vi: 'App desktop biến repo, spec và tài liệu thành video hướng dẫn lập trình deterministic: điều khiển VS Code và trình duyệt, keyframe camera, phụ đề và thuyết minh.', en: 'Desktop app that turns repos, specs and docs into deterministic, replayable coding tutorial videos: VS Code and browser control, camera keyframes, subtitles and narration.' }, result: { vi: 'Tự sinh video tutorial chạy lại được', en: 'Auto-generated replayable tutorial videos' }, tags: ['TypeScript', 'Electron', 'Remotion', 'Playwright'], url: '' }
   ],
   skills: [
-    { id: uid(), group: { vi: 'Frontend', en: 'Frontend' }, items: 'React, Next.js, TypeScript, React Native, Tailwind' },
-    { id: uid(), group: { vi: 'Backend & API', en: 'Backend & API' }, items: 'Node.js, NestJS, Go, PostgreSQL, Redis, GraphQL' },
-    { id: uid(), group: { vi: 'AI & Dữ liệu', en: 'AI & Data' }, items: 'LLM/RAG, Python, Airflow, dbt, vector DB' },
-    { id: uid(), group: { vi: 'Hạ tầng', en: 'Infrastructure' }, items: 'AWS, Docker, Kubernetes, Terraform, CI/CD' }
+    { id: uid(), group: { vi: 'Đồ họa & Rendering', en: 'Graphics & Rendering' }, items: 'Three.js, WebGL, GLSL, WGSL, bgfx, raylib, shaders, post-processing' },
+    { id: uid(), group: { vi: 'Engine & Gameplay', en: 'Engine & Gameplay' }, items: 'C++20, Rust, Bevy, EnTT (ECS), Box2D, Jolt, Dear ImGui' },
+    { id: uid(), group: { vi: 'Procedural & 3D', en: 'Procedural & 3D' }, items: 'Procedural generation, noise/fBm, PBR, glTF/GLB, CMake' },
+    { id: uid(), group: { vi: 'App & Desktop', en: 'App & Desktop' }, items: 'TypeScript, React, Electron, Vite, Node.js, Kotlin/Android' },
+    { id: uid(), group: { vi: 'AI & R&D', en: 'AI & R&D' }, items: 'LLM/OpenAI, Whisper, Vosk, automotive R&D, rapid prototyping' }
   ],
   experience: [
-    { id: uid(), company: 'Freelance', role: { vi: 'Kỹ sư phần mềm độc lập', en: 'Independent software engineer' }, period: '2023 — nay', desc: { vi: '14 dự án bàn giao cho khách ở Việt Nam, Singapore và Đức.', en: '14 projects delivered for clients in Vietnam, Singapore and Germany.' } },
-    { id: uid(), company: 'Tekhub', role: { vi: 'Senior Software Engineer', en: 'Senior Software Engineer' }, period: '2021 — 2023', desc: { vi: 'Dẫn đội 4 người xây nền tảng thương mại điện tử B2B.', en: 'Led a team of 4 building a B2B commerce platform.' } },
-    { id: uid(), company: 'Base Studio', role: { vi: 'Software Engineer', en: 'Software Engineer' }, period: '2019 — 2021', desc: { vi: 'Phát triển web app cho khách hàng agency, tập trung frontend.', en: 'Built web apps for agency clients, frontend focused.' } }
+    { id: uid(), company: 'FPT Software', role: { vi: 'Key member · Kỹ sư R&D', en: 'Key member · R&D Engineer' }, period: '2022 — nay', desc: { vi: 'Key member trong dự án R&D automotive cho khách hàng Nhật. Đặc thù công việc là luôn đổi mới và chinh phục mọi nhiệm vụ phi lý từ ý tưởng của khách.', en: 'Key member of an automotive R&D project for a Japanese client. The work is to keep innovating and conquer every seemingly impossible idea the client brings.' } },
+    { id: uid(), company: 'Freelance', role: { vi: 'Kỹ sư phần mềm độc lập', en: 'Independent Software Engineer' }, period: '2018 — 2022', desc: { vi: '4 năm nhận và bàn giao dự án web, app và đồ họa cho khách trong và ngoài nước.', en: '4 years taking and delivering web, app and graphics projects for local and overseas clients.' } }
   ],
   process: [
-    { id: uid(), title: { vi: 'Trao đổi & phạm vi', en: 'Scoping call' }, desc: { vi: 'Một buổi 45 phút để hiểu bài toán, sau đó tôi gửi phạm vi, mốc thời gian và báo giá cố định.', en: 'A 45-minute call to understand the problem, then I send scope, timeline and a fixed quote.' } },
-    { id: uid(), title: { vi: 'Bản chạy được sớm', en: 'Early working build' }, desc: { vi: 'Trong 1–2 tuần đầu bạn đã có bản chạy được để dùng thử, không chỉ là bản thiết kế.', en: 'Within the first 1–2 weeks you get a running build to try, not just mockups.' } },
-    { id: uid(), title: { vi: 'Lặp hàng tuần', en: 'Weekly iteration' }, desc: { vi: 'Mỗi tuần một bản demo và báo cáo ngắn. Bạn thấy tiến độ, tôi nhận phản hồi sớm.', en: 'A demo and a short report every week. You see progress, I get feedback early.' } },
-    { id: uid(), title: { vi: 'Bàn giao & hỗ trợ', en: 'Handover & support' }, desc: { vi: 'Mã nguồn, tài liệu, hướng dẫn vận hành và 30 ngày hỗ trợ sửa lỗi miễn phí.', en: 'Source, docs, runbook and 30 days of free bug support.' } }
+    { id: uid(), title: { vi: 'Mổ xẻ bài toán "phi lý"', en: 'Break down the "impossible"' }, desc: { vi: 'Bóc tách yêu cầu tưởng như bất khả thi thành các phần đo được, tìm ra đâu là rào cản kỹ thuật thật.', en: 'Decompose a seemingly impossible ask into measurable pieces and pinpoint the real technical blockers.' } },
+    { id: uid(), title: { vi: 'Prototype nhanh', en: 'Rapid prototype' }, desc: { vi: 'Dựng proof-of-concept chạy được sớm để chứng minh tính khả thi trước khi đầu tư sâu.', en: 'Stand up a working proof-of-concept early to prove feasibility before investing further.' } },
+    { id: uid(), title: { vi: 'Lặp & tối ưu', en: 'Iterate & optimize' }, desc: { vi: 'Tinh chỉnh theo phản hồi và ràng buộc thời gian thực: hiệu năng, chất lượng hình ảnh, độ ổn định.', en: 'Refine against feedback and real-time constraints: performance, visual quality, stability.' } },
+    { id: uid(), title: { vi: 'Bàn giao & tài liệu', en: 'Deliver & document' }, desc: { vi: 'Bàn giao mã nguồn, tài liệu và hướng dẫn để đội ngũ tiếp tục phát triển được lâu dài.', en: 'Hand over source, docs and guides so the team can keep building long term.' } }
   ],
-  testimonials: [
-    { id: uid(), quote: { vi: 'Bàn giao đúng hẹn, chủ động đề xuất giải pháp rẻ hơn cho hạ tầng. Chúng tôi thuê tiếp ngay dự án sau.', en: 'Delivered on time and proactively proposed a cheaper infrastructure setup. We hired him again right after.' }, author: 'Linh Trần', company: 'CTO, Fleetline' },
-    { id: uid(), quote: { vi: 'Giao tiếp rõ ràng qua async, code sạch và có test. Rất dễ làm việc dù lệch múi giờ.', en: 'Clear async communication, clean and tested code. Easy to work with despite the time zones.' }, author: 'Martin Weber', company: 'Founder, Mint Ledger' }
-  ],
+  testimonials: [],
   posts: [
-    { id: uid(), title: { vi: 'Cách tôi ước lượng dự án freelance', en: 'How I estimate freelance projects' }, excerpt: { vi: 'Ba câu hỏi tôi luôn hỏi trước khi báo giá, và vì sao tôi tránh tính theo giờ cho dự án nhỏ.', en: 'Three questions I always ask before quoting, and why I avoid hourly billing on small projects.' }, date: '2026-05-14', tag: 'Freelance', url: '' },
-    { id: uid(), title: { vi: 'RAG trong sản phẩm thật', en: 'RAG in a real product' }, excerpt: { vi: 'Những chỗ pipeline RAG hay hỏng khi dữ liệu khách hàng lộn xộn, và cách tôi đo chất lượng.', en: 'Where RAG pipelines break on messy client data, and how I measure quality.' }, date: '2026-03-02', tag: 'AI', url: '' }
+    { id: uid(), title: { vi: 'Viết engine game từ con số 0 với C++20', en: 'Building a game engine from scratch in C++20' }, excerpt: { vi: 'Những quyết định kiến trúc khi ghép bgfx, EnTT, SDL3 và physics thành một engine chạy được, và các bẫy tôi đã gặp.', en: 'Architecture decisions when wiring bgfx, EnTT, SDL3 and physics into a working engine, and the traps I hit.' }, date: '2025-11-10', tag: 'Engine', url: '' },
+    { id: uid(), title: { vi: 'Procedural: từ noise đến rừng thông có sương', en: 'Procedural: from noise to misty forests' }, excerpt: { vi: 'Cách tôi dùng fBm noise và domain warping để tạo địa hình, đá và thực vật trông tự nhiên.', en: 'How I use fBm noise and domain warping to grow natural-looking terrain, rocks and vegetation.' }, date: '2025-08-22', tag: 'Graphics', url: '' },
+    { id: uid(), title: { vi: 'Biến ý tưởng phi lý của khách thành prototype trong 1 tuần', en: 'Turning an impossible client idea into a prototype in a week' }, excerpt: { vi: 'Quy trình R&D tôi dùng để chứng minh khả thi nhanh, học từ dự án automotive cho khách Nhật.', en: 'The R&D workflow I use to prove feasibility fast, learned on an automotive project for a Japanese client.' }, date: '2025-06-05', tag: 'R&D', url: '' }
   ]
 };
 
