@@ -367,7 +367,8 @@ export function createGrassField(canvas) {
   renderer.setClearColor(BG, 1);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 120);
+  const BASE_FOV = 50;   // vertical FOV tuned for a landscape frame
+  const camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.1, 120);
   // Near top-down view: camera high above the field looking down, with a slight
   // tilt so the blades keep a little body instead of collapsing to dots.
   const CAM_BASE = new THREE.Vector3(0, 7.6, 1.9);
@@ -660,7 +661,21 @@ export function createGrassField(canvas) {
       finalComposer.setPixelRatio(curDpr);
       finalComposer.setSize(w, h);
     }
-    camera.aspect = w / h;
+    // Adaptive framing: BASE_FOV is tuned for landscape. On narrower (portrait)
+    // screens a fixed vertical FOV zooms the meadow in horizontally until it
+    // barely spreads, so we widen the vertical FOV as the screen narrows to keep
+    // the meadow filling the width — clamped so it never distorts or reveals the
+    // bare ground past the grass disc.
+    const aspect = w / h;
+    camera.aspect = aspect;
+    const REF_ASPECT = 16 / 9;
+    if (aspect >= REF_ASPECT) {
+      camera.fov = BASE_FOV;
+    } else {
+      const hHalf = Math.atan(Math.tan(THREE.MathUtils.degToRad(BASE_FOV) / 2) * REF_ASPECT);
+      const vFov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(hHalf) / aspect));
+      camera.fov = Math.min(vFov, 74);
+    }
     camera.updateProjectionMatrix();
     renderer.getDrawingBufferSize(uniforms.uResolution.value);
     shadowDirty = true;
