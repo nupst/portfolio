@@ -485,7 +485,7 @@ export function createGrassField(canvas) {
     cardCount: 0,                // cards look wrong top-down — disable
     stalkScale: 1.6,             // raise heads toward the grass tips
     headScale: 6.5,              // enlarge heads so flowers read from above
-    droop: 0.3,                  // tip the petals slightly downward
+    droop: 0,                    // no downward tip — petals splay open, not cupped under
     glow: 1.1,                   // gentle brightness lift for the bloom pass
     sway: 0.16,                  // head travel per unit of grass sway
     pushRadius: 2.6,             // match the grass cursor push
