@@ -6,6 +6,7 @@ import * as THREE from 'three';
 // Adobe palette: olive greens fading to earthy browns.
 const BG = new THREE.Color('#cfe6da');        // bright daylight haze — no black background
 const GROUND = new THREE.Color('#593a2f');    // dark earthy brown ground (#593A2F)
+const GROUND_DEPTH = 0.0;                      // 0 = flat ground (bowl depression disabled)
 const BLADE_BASE = new THREE.Color('#735d34'); // olive-brown root (#735D34)
 const BLADE_TIP = new THREE.Color('#788c30');  // bright olive-green tip (#788C30)
 const BLADE_DRY = new THREE.Color('#6b732f');  // duller olive-green variation (#6B732F)
@@ -20,6 +21,7 @@ const VERT = /* glsl */ `
   uniform float uSunRadius;  // radius of the overhead sun pool
   uniform float uGroundR;      // ground disc radius (for UV mapping)
   uniform float uGroundRepeat; // ground texture repeat
+  uniform float uGroundDepth;  // bowl depression depth (matches ground geometry)
 
   attribute vec3 aOffset;   // blade root position
   attribute vec4 aRand;     // x: yaw, y: height mul, z: phase, w: color jitter
@@ -137,7 +139,12 @@ const VERT = /* glsl */ `
     float cy = R * sin(alpha);                             // vertical rise (>= 0)
     vec2 horiz = bd * (R * (1.0 - cos(alpha)));            // horizontal sweep along bend dir
 
-    vec3 center = vec3(aOffset.x + horiz.x, cy, aOffset.z + horiz.y);
+    // Sit the blade root on the curved ground bowl (same quadratic depression as
+    // the ground disc), so blades follow the surface instead of a flat plane.
+    float gFrac = min(length(aOffset.xz) / uGroundR, 1.0);
+    float groundY = -uGroundDepth * (1.0 - gFrac * gFrac);
+
+    vec3 center = vec3(aOffset.x + horiz.x, groundY + cy, aOffset.z + horiz.y);
 
     // Tapered width, added perpendicular to the blade's facing direction.
     float halfW = position.x * 0.08 * width * (1.0 - t * 0.82);
@@ -278,8 +285,8 @@ function curvedGroundGeometry(radius = 70, radialSegs = 48, depth = 4.2) {
       const c = a + (thetaSegs + 1);
       const d = c + 1;
 
-      index.push(a, c, b);
-      index.push(b, c, d);
+      index.push(a, b, c);
+      index.push(b, d, c);
     }
   }
 
@@ -350,7 +357,7 @@ export function createGrassField(canvas) {
   // — curved ground bowl under the blades — lit by real lights so it matches the sun —
   // The bowl curves inward (depression) so it's visible from the top-down camera.
   const ground = new THREE.Mesh(
-    curvedGroundGeometry(70, 48, 4.2),
+    curvedGroundGeometry(70, 48, GROUND_DEPTH),
     new THREE.MeshStandardMaterial({ color: GROUND, roughness: 1, metalness: 0 })
   );
   ground.position.y = 0;  // bowl is already centered in its geometry
@@ -448,7 +455,8 @@ export function createGrassField(canvas) {
     uGroundTex: { value: null },
     uHasGroundTex: { value: 0 },
     uGroundR: { value: 70 },        // must match the ground disc radius
-    uGroundRepeat: { value: 26 }    // must match ground texture repeat
+    uGroundRepeat: { value: 26 },   // must match ground texture repeat
+    uGroundDepth: { value: GROUND_DEPTH } // must match the ground bowl depth
   };
   const mat = new THREE.ShaderMaterial({
     vertexShader: VERT,
