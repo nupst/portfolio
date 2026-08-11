@@ -240,6 +240,52 @@ const FRAG = /* glsl */ `
   }
 `;
 
+function curvedGroundGeometry(radius = 70, radialSegs = 48, depth = 4.2) {
+  // Curved ground disc: shallow bowl depression visible from top-down camera.
+  // Depth controls how much the center sinks (curves inward).
+  const positions = [];
+  const normals = [];
+  const index = [];
+
+  const thetaSegs = radialSegs;
+  const rSegs = 16;  // radial segments for smoother curve
+
+  // Generate vertices: concentric rings with increasing radius
+  for (let r = 0; r <= rSegs; r++) {
+    const rFrac = r / rSegs;  // 0 at center, 1 at edge
+    const currentRadius = rFrac * radius;
+    // Curve: quadratic depression, deepest at center
+    const y = -depth * (1 - rFrac * rFrac);
+
+    for (let t = 0; t <= thetaSegs; t++) {
+      const theta = (t / thetaSegs) * Math.PI * 2;
+      const x = currentRadius * Math.cos(theta);
+      const z = currentRadius * Math.sin(theta);
+      positions.push(x, y, z);
+      // Normals computed per-face after triangulation
+    }
+  }
+
+  // Generate triangles connecting the rings
+  for (let r = 0; r < rSegs; r++) {
+    for (let t = 0; t < thetaSegs; t++) {
+      const a = r * (thetaSegs + 1) + t;
+      const b = a + 1;
+      const c = a + (thetaSegs + 1);
+      const d = c + 1;
+
+      index.push(a, c, b);
+      index.push(b, c, d);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+  geo.setIndex(new THREE.BufferAttribute(new Uint32Array(index), 1));
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function bladeGeometry(segments = 4) {
   // Thin tapered strip; x = ±0.5 (halved & tapered in the shader), y = t 0..1.
   const positions = [];
@@ -296,13 +342,13 @@ export function createGrassField(canvas) {
 
   const fogDensity = 0.02;
 
-  // — ground disc under the blades — lit by real lights so it matches the sun —
+  // — curved ground bowl under the blades — lit by real lights so it matches the sun —
+  // The bowl curves inward (depression) so it's visible from the top-down camera.
   const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(70, 48),
+    curvedGroundGeometry(70, 48, 4.2),
     new THREE.MeshStandardMaterial({ color: GROUND, roughness: 1, metalness: 0 })
   );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.02;
+  ground.position.y = 0;  // bowl is already centered in its geometry
   scene.add(ground);
   scene.fog = new THREE.FogExp2(BG, fogDensity);
 
