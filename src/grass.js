@@ -486,7 +486,7 @@ export function createGrassField(canvas) {
     stalkScale: 1.6,             // raise heads toward the grass tips
     headScale: 6.5,              // enlarge heads so flowers read from above
     droop: -0.2,                 // lift petals slightly upward (open, uncupped)
-    coreScale: 1.8,              // flat, slightly wider centre disc to meet the petals
+    coreScale: 0.9,              // flat centre disc, 50% smaller than before
     petalInset: 0.004,           // slide petal bases inward so they overlap the centre
     glow: 1.1,                   // gentle brightness lift for the bloom pass
     sway: 0.16,                  // head travel per unit of grass sway
