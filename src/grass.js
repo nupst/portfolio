@@ -68,8 +68,13 @@ const VERT = /* glsl */ `
 
     float yaw = aRand.x;
     float c = cos(yaw), s = sin(yaw);
-    float height = aRand.y;
-    float width = mix(1.35, 0.85, aRand.w);
+
+    // Procedural height & width: low-freq spatial noise creates patches of
+    // taller/shorter and wider/narrower blades, not per-blade randomness.
+    float heightNoise = snoise(aOffset.xz * 0.035 + 100.0) * 0.18;      // ±18% height variation
+    float widthNoise = snoise(aOffset.xz * 0.032 + 200.0) * 0.22;       // ±22% width variation
+    float height = aRand.y * (1.0 + heightNoise);
+    float width = mix(1.35, 0.85, aRand.w) * (1.0 + widthNoise);
 
     // Coherent wind: ONE flowing noise field sampled at the blade's world
     // position and scrolled along the wind direction. Gusts sweep across the
