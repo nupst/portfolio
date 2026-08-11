@@ -340,9 +340,27 @@ function mulberry32(seed) {
 }
 
 export function createGrassField(canvas) {
+  // — adaptive quality — pick a tier from device signals so the same meadow
+  // scales from weak phones to strong desktops. Blade/flower counts, pixel
+  // ratio and antialiasing all drop on weaker hardware; a runtime FPS governor
+  // (see the animation loop) lowers the pixel ratio further if frames still
+  // come in slow. High tier stays at the original full-fat settings.
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  const cores = navigator.hardwareConcurrency || (coarse ? 4 : 8);
+  const mem = navigator.deviceMemory || (coarse ? 4 : 8);   // GB, Chrome-only
+  let tier;
+  if (coarse) tier = (cores <= 4 || mem <= 3) ? 'low' : 'mid';
+  else        tier = (cores <= 4 || mem <= 4) ? 'mid' : 'high';
+  const TIERS = {
+    low:  { blades: 18000,  flowers: 700,  dprCap: 1.0,  aa: false },
+    mid:  { blades: 45000,  flowers: 1700, dprCap: 1.25, aa: true  },
+    high: { blades: 118300, flowers: 4200, dprCap: 1.75, aa: true  },
+  };
+  const Q = TIERS[tier];
+
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: Q.aa, alpha: false, powerPreference: 'high-performance' });
   } catch {
     return null; // no WebGL — CSS gradient fallback stays visible
   }
@@ -397,8 +415,7 @@ export function createGrassField(canvas) {
   );
 
   // — instanced blades, jittered grid for even, gap-free coverage —
-  const coarse = matchMedia('(pointer: coarse)').matches;
-  const COUNT = coarse ? 50700 : 118300;  // +30% additional density (91k→118k, 39k→51k)
+  const COUNT = Q.blades;    // per-tier density (see adaptive quality above)
   const FIELD = 13;          // field half-extent (units) — sized to fill a top-down frame
 
   const geo = new THREE.InstancedBufferGeometry();
@@ -481,7 +498,7 @@ export function createGrassField(canvas) {
   const flowers = createFlowerField({
     innerRadius: FIELD,          // fill the whole grass disc
     fieldRadius: FIELD,
-    nearCount: coarse ? 1800 : 4200,
+    nearCount: Q.flowers,
     cardCount: 0,                // cards look wrong top-down — disable
     stalkScale: 1.6,             // raise heads toward the grass tips
     headScale: 6.5,              // enlarge heads so flowers read from above
@@ -501,37 +518,49 @@ export function createGrassField(canvas) {
   // The bloom pass renders just the flower layer (rest of the scene absent,
   // cleared to black), blurs it, and the final pass adds that glow back over a
   // normal full-scene render.
+  // Bloom strength. 0 = OFF → we skip the whole double-render/blur pipeline and
+  // draw the scene ONCE, which roughly halves GPU cost for identical output.
+  // Bump this up (e.g. 0.01–0.03) to re-enable the flower glow; the selective
+  // bloom composers below are only built when it's > 0.
+  const BLOOM_STRENGTH = 0.0;
+  const useBloom = BLOOM_STRENGTH > 0;
+
   const BLOOM_LAYER = 1;
-  flowers.mesh.traverse((o) => { if (o.isMesh) o.layers.enable(BLOOM_LAYER); });
+  let bloomComposer = null, finalComposer = null;
+  if (useBloom) {
+    flowers.mesh.traverse((o) => { if (o.isMesh) o.layers.enable(BLOOM_LAYER); });
 
-  const bloomComposer = new EffectComposer(renderer);
-  bloomComposer.renderToScreen = false;
-  bloomComposer.addPass(new RenderPass(scene, camera, null, new THREE.Color(0, 0, 0), 1));
-  // strength, radius, threshold — bloom temporarily OFF (strength 0) per request.
-  // Bump strength back up (e.g. 0.01–0.03) to re-enable the flower glow.
-  const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.0, 0.35, 0.6);
-  bloomComposer.addPass(bloomPass);
+    bloomComposer = new EffectComposer(renderer);
+    bloomComposer.renderToScreen = false;
+    bloomComposer.addPass(new RenderPass(scene, camera, null, new THREE.Color(0, 0, 0), 1));
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), BLOOM_STRENGTH, 0.35, 0.6);
+    bloomComposer.addPass(bloomPass);
 
-  const finalComposer = new EffectComposer(renderer);
-  finalComposer.addPass(new RenderPass(scene, camera));
-  const combinePass = new ShaderPass(new THREE.ShaderMaterial({
-    uniforms: {
-      baseTexture: { value: null },
-      bloomTexture: { value: bloomComposer.renderTarget2.texture }
-    },
-    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `
-      uniform sampler2D baseTexture;
-      uniform sampler2D bloomTexture;
-      varying vec2 vUv;
-      void main() {
-        gl_FragColor = texture2D(baseTexture, vUv) + texture2D(bloomTexture, vUv);
-      }`
-  }), 'baseTexture');
-  combinePass.needsSwap = true;
-  finalComposer.addPass(combinePass);
+    finalComposer = new EffectComposer(renderer);
+    finalComposer.addPass(new RenderPass(scene, camera));
+    const combinePass = new ShaderPass(new THREE.ShaderMaterial({
+      uniforms: {
+        baseTexture: { value: null },
+        bloomTexture: { value: bloomComposer.renderTarget2.texture }
+      },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `
+        uniform sampler2D baseTexture;
+        uniform sampler2D bloomTexture;
+        varying vec2 vUv;
+        void main() {
+          gl_FragColor = texture2D(baseTexture, vUv) + texture2D(bloomTexture, vUv);
+        }`
+    }), 'baseTexture');
+    combinePass.needsSwap = true;
+    finalComposer.addPass(combinePass);
+  }
 
-  function renderBloom() {
+  function renderScene() {
+    if (!useBloom) {            // fast path: one straight render of the whole scene
+      renderer.render(scene, camera);
+      return;
+    }
     camera.layers.set(BLOOM_LAYER);   // bloom pass: flowers only
     bloomComposer.render();
     camera.layers.set(0);             // final pass: whole scene + glow
@@ -609,16 +638,28 @@ export function createGrassField(canvas) {
   document.addEventListener('mouseleave', onLeave);
 
   // — resize —
+  // curDpr is the live pixel ratio: capped per tier, then lowered further by the
+  // runtime FPS governor if frames run slow.
+  let curDpr = Math.min(devicePixelRatio || 1, Q.dprCap);
+  function applyDpr() {
+    renderer.setPixelRatio(curDpr);
+    if (useBloom) {
+      bloomComposer.setPixelRatio(curDpr);
+      finalComposer.setPixelRatio(curDpr);
+    }
+    renderer.getDrawingBufferSize(uniforms.uResolution.value);
+  }
   function resize() {
-    const dpr = Math.min(devicePixelRatio || 1, 1.75);
     const w = canvas.clientWidth || innerWidth;
     const h = canvas.clientHeight || innerHeight;
-    renderer.setPixelRatio(dpr);
+    renderer.setPixelRatio(curDpr);
     renderer.setSize(w, h, false);
-    bloomComposer.setPixelRatio(dpr);
-    bloomComposer.setSize(w, h);
-    finalComposer.setPixelRatio(dpr);
-    finalComposer.setSize(w, h);
+    if (useBloom) {
+      bloomComposer.setPixelRatio(curDpr);
+      bloomComposer.setSize(w, h);
+      finalComposer.setPixelRatio(curDpr);
+      finalComposer.setSize(w, h);
+    }
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.getDrawingBufferSize(uniforms.uResolution.value);
@@ -634,11 +675,30 @@ export function createGrassField(canvas) {
   let raf = 0;
   let running = true;
 
+  // Runtime FPS governor: sample the framerate over ~1.2s windows and, if it's
+  // sustained below target, step the pixel ratio down (cheap — no geometry
+  // rebuild) until frames smooth out. Downgrade-only, capped, so it never
+  // oscillates. This is the safety net that rescues devices the tier heuristic
+  // guessed too high for.
+  let govAccum = 0, govFrames = 0, govSteps = 0;
+  const GOV_MAX_STEPS = 4, GOV_MIN_DPR = 0.7;
+
   let shadowTick = 0;
   function frame() {
     raf = requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.05);
     uniforms.uTime.value += dt * timeScale;
+
+    govAccum += dt; govFrames++;
+    if (govAccum >= 1.2 && govSteps < GOV_MAX_STEPS) {
+      const fps = govFrames / govAccum;
+      govAccum = 0; govFrames = 0;
+      if (fps < 45 && curDpr > GOV_MIN_DPR) {
+        curDpr = Math.max(GOV_MIN_DPR, curDpr - 0.15);
+        govSteps++;
+        applyDpr();
+      }
+    }
 
     // Refresh card shadows when scrolled/resized, plus a slow periodic pass to
     // catch layout changes (language toggle, content edits).
@@ -663,7 +723,7 @@ export function createGrassField(canvas) {
       camera.lookAt(LOOK_AT);
     }
     flowers.update(uniforms.uTime.value, camera, uniforms.uMouse.value, uniforms.uMouseOn.value);
-    renderBloom();
+    renderScene();
   }
   frame();
 
@@ -687,8 +747,8 @@ export function createGrassField(canvas) {
       removeEventListener('scroll', markShadowsDirty);
       shadowTex.dispose();
       flowers.dispose();
-      bloomComposer.dispose();
-      finalComposer.dispose();
+      if (bloomComposer) bloomComposer.dispose();
+      if (finalComposer) finalComposer.dispose();
       renderer.dispose();
     }
   };
