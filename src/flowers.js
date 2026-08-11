@@ -40,10 +40,13 @@ const SPECIES = [
     petalColor: 0xf2c93d, petalBase: 0xd9a92a, core: 0xb9871f,
     weight: 2,
   },
-  { // anh túc cam — poppy: broad overlapping FANS, crinkled rim, dark core
-    petals: 5,
-    petal: { length: 0.020, width: 0.024, cup: 0.010, arc: 0.9, wave: 0.0030, waveFreq: 6, profile: { a: 0.9, b: 0.12 } },
-    open: [0.9, 1.2],
+  { // anh túc cam → trumpet/loa kèn: petals stand up into a funnel with a
+    // central hole; width flares toward the tip (profile a large), edges cup
+    // in to form the tube walls.
+    petals: 6,
+    petal: { length: 0.026, width: 0.020, cup: 0.024, arc: 1.15, wave: 0.0030, waveFreq: 6, profile: { a: 1.6, b: 0.2 } },
+    open: [0.4, 0.6],       // near-upright → tube, not a flat splay
+    petalInset: -0.008,     // push bases OUT → open a central hole (trumpet)
     petalColor: 0xd2603a, petalBase: 0xc04c2e, core: 0x38281e,
     weight: 1.2,
   },
@@ -783,6 +786,9 @@ export function createFlowerField({
         uPetalColor: { value: new THREE.Color(sp.petalColor) },
         uPetalBaseColor: { value: new THREE.Color(sp.petalBase) },
         uSunDir: { value: sunDir },
+        // Per-species inset overrides the global one: negative pushes petal
+        // bases OUTWARD, opening a central hole (trumpet / loa kèn).
+        uPetalInset: { value: sp.petalInset ?? petalInset },
       },
       side: THREE.DoubleSide,
     });
