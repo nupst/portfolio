@@ -506,9 +506,9 @@ export function createGrassField(canvas) {
   const bloomComposer = new EffectComposer(renderer);
   bloomComposer.renderToScreen = false;
   bloomComposer.addPass(new RenderPass(scene, camera, null, new THREE.Color(0, 0, 0), 1));
-  // strength, radius, threshold — a faint halo on the brightest flowers only
-  // (0.01125 = the earlier 0.0225 cut by 50%, per request).
-  const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.01125, 0.35, 0.6);
+  // strength, radius, threshold — bloom temporarily OFF (strength 0) per request.
+  // Bump strength back up (e.g. 0.01–0.03) to re-enable the flower glow.
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.0, 0.35, 0.6);
   bloomComposer.addPass(bloomPass);
 
   const finalComposer = new EffectComposer(renderer);
