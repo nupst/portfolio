@@ -418,6 +418,9 @@ export function createGrassField(canvas) {
   // — instanced blades, jittered grid for even, gap-free coverage —
   const COUNT = Q.blades;    // per-tier density (see adaptive quality above)
   const FIELD = 13;          // field half-extent (units) — sized to fill a top-down frame
+  // Radial density bias: 1 = uniform, >1 pulls blades toward the centre so the
+  // middle packs tight and the field thins out toward the edges/sides.
+  const CENTER_BIAS = 1.6;
 
   const geo = new THREE.InstancedBufferGeometry();
   const blade = bladeGeometry(4);
@@ -439,9 +442,17 @@ export function createGrassField(canvas) {
       const x = (u - 0.5) * 2 * FIELD;
       const z = (v - 0.5) * 2 * FIELD;
       if (x * x + z * z > FIELD * FIELD) continue;   // clip to disc
-      offsets[n * 3 + 0] = x;
+      // Warp the radius inward so blades crowd toward the centre and thin out
+      // toward the edges — keeps the even jitter, just changes radial density.
+      let px = x, pz = z;
+      const rad = Math.sqrt(x * x + z * z);
+      if (rad > 1e-4) {
+        const s = FIELD * Math.pow(rad / FIELD, CENTER_BIAS) / rad;
+        px = x * s; pz = z * s;
+      }
+      offsets[n * 3 + 0] = px;
       offsets[n * 3 + 1] = 0;
-      offsets[n * 3 + 2] = z;
+      offsets[n * 3 + 2] = pz;
       rands[n * 4 + 0] = rng() * Math.PI * 2;        // yaw
       rands[n * 4 + 1] = 0.5 + rng() * 0.55;         // height (shorter, tighter range)
       rands[n * 4 + 2] = rng() * Math.PI * 2;        // phase
