@@ -2,6 +2,11 @@
 // GPU-instanced blades, layered wind, pointer interaction (blades part and
 // glow around the cursor), fog fading into the page background (#050807).
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { createFlowerField } from './flowers.js';
 
 // Adobe palette: olive greens fading to earthy browns.
 const BG = new THREE.Color('#cfe6da');        // bright daylight haze — no black background
@@ -468,6 +473,68 @@ export function createGrassField(canvas) {
   grass.frustumCulled = false;
   scene.add(grass);
 
+  // — wildflowers scattered through the same disc, interspersed with the grass —
+  // Six species (no "spike"); near-tier real petals only (the far-tier cards are
+  // upright cross-quads that read as edges from straight above, so they're off).
+  // stalkScale/headScale enlarge the natively tiny flowers so their heads sit at
+  // grass-tip height and stay legible from the top-down camera.
+  const flowers = createFlowerField({
+    innerRadius: FIELD,          // fill the whole grass disc
+    fieldRadius: FIELD,
+    nearCount: coarse ? 1800 : 4200,
+    cardCount: 0,                // cards look wrong top-down — disable
+    stalkScale: 1.6,             // raise heads toward the grass tips
+    headScale: 6.5,              // enlarge heads so flowers read from above
+    droop: 0.3,                  // tip the petals slightly downward
+    glow: 1.1,                   // gentle brightness lift for the bloom pass
+    sway: 0.16,                  // head travel per unit of grass sway
+    pushRadius: 2.6,             // match the grass cursor push
+    fog: { color: '#cfe6da', near: 40, far: 100 } // match BG; flowers are close so fog barely bites
+    // wind defaults: strength 1.0 (= grass uWind), direction (0.82,0.44)
+  });
+  scene.add(flowers.mesh);
+
+  // — selective bloom: ONLY the flowers glow, the grass stays crisp —
+  // The bloom pass renders just the flower layer (rest of the scene absent,
+  // cleared to black), blurs it, and the final pass adds that glow back over a
+  // normal full-scene render.
+  const BLOOM_LAYER = 1;
+  flowers.mesh.traverse((o) => { if (o.isMesh) o.layers.enable(BLOOM_LAYER); });
+
+  const bloomComposer = new EffectComposer(renderer);
+  bloomComposer.renderToScreen = false;
+  bloomComposer.addPass(new RenderPass(scene, camera, null, new THREE.Color(0, 0, 0), 1));
+  // strength, radius, threshold — a faint halo on the brightest flowers only
+  // (strength 0.075 = the earlier 0.75 cut 10×, per request).
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.075, 0.35, 0.6);
+  bloomComposer.addPass(bloomPass);
+
+  const finalComposer = new EffectComposer(renderer);
+  finalComposer.addPass(new RenderPass(scene, camera));
+  const combinePass = new ShaderPass(new THREE.ShaderMaterial({
+    uniforms: {
+      baseTexture: { value: null },
+      bloomTexture: { value: bloomComposer.renderTarget2.texture }
+    },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `
+      uniform sampler2D baseTexture;
+      uniform sampler2D bloomTexture;
+      varying vec2 vUv;
+      void main() {
+        gl_FragColor = texture2D(baseTexture, vUv) + texture2D(bloomTexture, vUv);
+      }`
+  }), 'baseTexture');
+  combinePass.needsSwap = true;
+  finalComposer.addPass(combinePass);
+
+  function renderBloom() {
+    camera.layers.set(BLOOM_LAYER);   // bloom pass: flowers only
+    bloomComposer.render();
+    camera.layers.set(0);             // final pass: whole scene + glow
+    finalComposer.render();
+  }
+
   // — screen-space shadows from the floating UI cards —
   // The glass cards are DOM elements above the canvas, so real shadow mapping
   // can't see them. Instead their viewport rects are drawn (offset along the
@@ -545,6 +612,10 @@ export function createGrassField(canvas) {
     const h = canvas.clientHeight || innerHeight;
     renderer.setPixelRatio(dpr);
     renderer.setSize(w, h, false);
+    bloomComposer.setPixelRatio(dpr);
+    bloomComposer.setSize(w, h);
+    finalComposer.setPixelRatio(dpr);
+    finalComposer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.getDrawingBufferSize(uniforms.uResolution.value);
@@ -588,7 +659,8 @@ export function createGrassField(canvas) {
       );
       camera.lookAt(LOOK_AT);
     }
-    renderer.render(scene, camera);
+    flowers.update(uniforms.uTime.value, camera, uniforms.uMouse.value, uniforms.uMouseOn.value);
+    renderBloom();
   }
   frame();
 
@@ -611,6 +683,9 @@ export function createGrassField(canvas) {
       removeEventListener('resize', resize);
       removeEventListener('scroll', markShadowsDirty);
       shadowTex.dispose();
+      flowers.dispose();
+      bloomComposer.dispose();
+      finalComposer.dispose();
       renderer.dispose();
     }
   };
