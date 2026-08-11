@@ -244,7 +244,7 @@ function curvedGroundGeometry(radius = 70, radialSegs = 48, depth = 4.2) {
   // Curved ground disc: shallow bowl depression visible from top-down camera.
   // Depth controls how much the center sinks (curves inward).
   const positions = [];
-  const normals = [];
+  const uvs = [];
   const index = [];
 
   const thetaSegs = radialSegs;
@@ -262,7 +262,11 @@ function curvedGroundGeometry(radius = 70, radialSegs = 48, depth = 4.2) {
       const x = currentRadius * Math.cos(theta);
       const z = currentRadius * Math.sin(theta);
       positions.push(x, y, z);
-      // Normals computed per-face after triangulation
+
+      // UV coordinates: angle (u) and radius (v)
+      const u = t / thetaSegs;
+      const v = rFrac;
+      uvs.push(u, v);
     }
   }
 
@@ -281,6 +285,7 @@ function curvedGroundGeometry(radius = 70, radialSegs = 48, depth = 4.2) {
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
   geo.setIndex(new THREE.BufferAttribute(new Uint32Array(index), 1));
   geo.computeVertexNormals();
   return geo;
