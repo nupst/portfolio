@@ -335,7 +335,7 @@ export function createGrassField(canvas) {
 
   // — instanced blades, jittered grid for even, gap-free coverage —
   const coarse = matchMedia('(pointer: coarse)').matches;
-  const COUNT = coarse ? 39000 : 91000;  // +30% density
+  const COUNT = coarse ? 50700 : 118300;  // +30% additional density (91k→118k, 39k→51k)
   const FIELD = 13;          // field half-extent (units) — sized to fill a top-down frame
 
   const geo = new THREE.InstancedBufferGeometry();

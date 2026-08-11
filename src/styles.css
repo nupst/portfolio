@@ -157,17 +157,17 @@ textarea.input { min-height: 74px; resize: vertical; }
   text-shadow: 0 1px 12px rgba(10, 20, 12, 0.85), 0 0 3px rgba(10, 20, 12, 0.7);
 }
 
-/* Content sections: minimal semi-transparent background, glowing text for visibility. */
+/* Content sections: no individual backgrounds (continuous panel via main::before) */
 #work, #services, #stack, #process, #testimonials, #writing {
-  background: rgba(9, 14, 20, 0.35);
+  background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: 0;
   padding-left: 30px;
   padding-right: 30px;
-  margin-bottom: 12px;
-  box-shadow: 0 18px 50px rgba(6, 12, 8, 0.25);
+  margin-bottom: 0;
+  box-shadow: none;
 }
 #work h2, #services h2, #stack h2, #process h2, #testimonials h2, #writing h2 {
   text-shadow: 0 0 20px rgba(209, 250, 229, 0.6), 0 0 40px rgba(167, 243, 208, 0.3), 0 2px 8px rgba(10, 20, 12, 0.8);
@@ -205,7 +205,23 @@ textarea.input { min-height: 74px; resize: vertical; }
   white-space: nowrap; text-decoration: none; text-transform: uppercase;
 }
 
-main.container { max-width: 1160px; margin: 0 auto; padding: 0 32px 96px; }
+main.container {
+  max-width: 1160px; margin: 0 auto; padding: 0 32px 96px;
+  position: relative;
+}
+/* Continuous background panel spanning all content sections (work → writing) */
+main.container::before {
+  content: ""; position: absolute;
+  top: 56px;  /* aligns with first section after hero padding */
+  left: 0; right: 0;
+  bottom: 120px;  /* stops before contact section */
+  background: rgba(9, 14, 20, 0.38);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  box-shadow: 0 18px 50px rgba(6, 12, 8, 0.25);
+  z-index: -1;
+  pointer-events: none;
+}
 
 /* — hero — */
 .hero {
