@@ -29,7 +29,7 @@ const SPECIES = [
     petals: 9,
     petal: { length: 0.020, width: 0.007, cup: 0.005, arc: 1.2, wave: 0.0010, waveFreq: 2, profile: { a: 0.15, b: 0.3 } },
     open: [1.25, 1.55],
-    petalColor: 0xf6f2e4, petalBase: 0xe7dfb4, core: 0xe0b23a,
+    petalColor: 0xf6f2e4, petalBase: 0xe7dfb4, core: 0xc4691a, // dark-orange centre
     weight: 3,
   },
   { // mao lương vàng — buttercup: OBOVATE petals (widest near the tip),
@@ -44,7 +44,7 @@ const SPECIES = [
     petals: 5,
     petal: { length: 0.020, width: 0.024, cup: 0.010, arc: 0.9, wave: 0.0030, waveFreq: 6, profile: { a: 0.9, b: 0.12 } },
     open: [0.9, 1.2],
-    droop: 0.1,   // this orange flower cups down a touch more than the rest
+    droop: 0.3,   // this orange flower cups down noticeably more than the rest
     petalColor: 0xd2603a, petalBase: 0xc04c2e, core: 0x38281e,
     weight: 1.2,
   },
@@ -572,6 +572,7 @@ export function createFlowerField({
   headScale = 1,    // multiply head size (scales petals + core, not placement)
   droop = 0,        // extra petal splay (radians) — >0 tips the petals downward
   coreScale = 1,    // enlarge the center disc so it meets the petal ring (no gap)
+  coreDrop = 0,     // lower the core (× head size) so it nests INTO the petals
   petalInset = 0,   // slide petal bases toward the centre (spine units) to close the gap
   glow = 1.25,      // petal/core brightness lift feeding the bloom pass
   sway = 0.16,      // grass-sway units → flower head horizontal travel
@@ -710,7 +711,7 @@ export function createFlowerField({
     const tmp = new THREE.Color();
     heads.forEach((hd, f) => {
       offsets[f * 3] = hd.x;
-      offsets[f * 3 + 1] = hd.h;
+      offsets[f * 3 + 1] = hd.h - coreDrop * hd.size;   // sink the core into the petals
       offsets[f * 3 + 2] = hd.z;
       scales[f] = hd.size * coreScale;
       phases[f] = hd.phase;
